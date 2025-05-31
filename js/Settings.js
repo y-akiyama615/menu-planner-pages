@@ -6,6 +6,45 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     const [isExporting, setIsExporting] = React.useState(false);
     const [showDialog, setShowDialog] = React.useState(false);
     const [dialogMessage, setDialogMessage] = React.useState('');
+    const [scriptsLoaded, setScriptsLoaded] = React.useState(false);
+
+    // スクリプトの読み込み状態を管理
+    React.useEffect(() => {
+        const loadScripts = async () => {
+            try {
+                await Promise.all([
+                    new Promise((resolve, reject) => {
+                        if (window.jspdf) {
+                            resolve();
+                            return;
+                        }
+                        const script = document.createElement('script');
+                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    }),
+                    new Promise((resolve, reject) => {
+                        if (window.html2canvas) {
+                            resolve();
+                            return;
+                        }
+                        const script = document.createElement('script');
+                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                        script.onload = resolve;
+                        script.onerror = reject;
+                        document.head.appendChild(script);
+                    })
+                ]);
+                setScriptsLoaded(true);
+            } catch (error) {
+                console.error('スクリプトの読み込みに失敗しました:', error);
+                showMessage('必要なライブラリの読み込みに失敗しました。');
+            }
+        };
+
+        loadScripts();
+    }, []);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -52,33 +91,28 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     };
 
     const handleExportPDF = async () => {
+        if (!scriptsLoaded) {
+            showMessage('PDFライブラリの読み込み中です。しばらくお待ちください。');
+            return;
+        }
+
         setIsExporting(true);
         let contentElement = null;
+        let tempContainer = null;
 
         try {
-            await Promise.all([
-                new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                }),
-                new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                })
-            ]);
+            // 一時的なコンテナを作成
+            tempContainer = document.createElement('div');
+            tempContainer.style.position = 'absolute';
+            tempContainer.style.left = '-9999px';
+            tempContainer.style.top = '-9999px';
+            document.body.appendChild(tempContainer);
 
+            // PDF用のコンテンツを作成
             contentElement = document.createElement('div');
             contentElement.style.padding = '20px';
             contentElement.style.background = 'white';
             contentElement.style.width = '800px';
-            contentElement.style.position = 'absolute';
-            contentElement.style.left = '-9999px';
             contentElement.innerHTML = `
                 <h1 style="font-size: 24px; margin-bottom: 40px; text-align: center;">${settings.title}</h1>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
@@ -96,7 +130,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 </div>
             `;
 
-            document.body.appendChild(contentElement);
+            tempContainer.appendChild(contentElement);
 
             try {
                 const canvas = await html2canvas(contentElement, {
@@ -104,10 +138,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                     useCORS: true,
                     logging: false
                 });
-
-                if (contentElement && contentElement.parentNode) {
-                    contentElement.parentNode.removeChild(contentElement);
-                }
 
                 const imgData = canvas.toDataURL('image/jpeg', 1.0);
                 const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
@@ -127,13 +157,13 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 showMessage('PDF生成中にエラーが発生しました。');
             }
         } catch (error) {
-            console.error('スクリプトロードエラー:', error);
-            showMessage('必要なライブラリの読み込みに失敗しました。');
+            console.error('PDF生成処理エラー:', error);
+            showMessage('PDF生成中にエラーが発生しました。');
         } finally {
             setIsExporting(false);
-            // 念のため、要素が残っている場合は削除
-            if (contentElement && contentElement.parentNode) {
-                contentElement.parentNode.removeChild(contentElement);
+            // 一時的な要素を安全に削除
+            if (tempContainer && document.body.contains(tempContainer)) {
+                document.body.removeChild(tempContainer);
             }
         }
     };
@@ -196,9 +226,9 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                             <button
                                 type="button"
                                 onClick={handleExportPDF}
-                                disabled={isExporting}
+                                disabled={isExporting || !scriptsLoaded}
                                 className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
-                                    isExporting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                                    isExporting || !scriptsLoaded ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
                                 } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
                             >
                                 {isExporting ? '生成中...' : 'PDF出力'}
