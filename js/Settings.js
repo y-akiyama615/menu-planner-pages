@@ -53,10 +53,9 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
 
     const handleExportPDF = async () => {
         setIsExporting(true);
+        let contentElement = null;
 
         try {
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
             await Promise.all([
                 new Promise((resolve, reject) => {
                     const script = document.createElement('script');
@@ -74,13 +73,13 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 })
             ]);
 
-            const content = document.createElement('div');
-            content.style.padding = '20px';
-            content.style.background = 'white';
-            content.style.width = '800px';
-            content.style.position = 'absolute';
-            content.style.left = '-9999px';
-            content.innerHTML = `
+            contentElement = document.createElement('div');
+            contentElement.style.padding = '20px';
+            contentElement.style.background = 'white';
+            contentElement.style.width = '800px';
+            contentElement.style.position = 'absolute';
+            contentElement.style.left = '-9999px';
+            contentElement.innerHTML = `
                 <h1 style="font-size: 24px; margin-bottom: 40px; text-align: center;">${settings.title}</h1>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
                     ${menus
@@ -97,16 +96,18 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 </div>
             `;
 
-            document.body.appendChild(content);
+            document.body.appendChild(contentElement);
 
             try {
-                const canvas = await html2canvas(content, {
+                const canvas = await html2canvas(contentElement, {
                     scale: 2,
                     useCORS: true,
                     logging: false
                 });
 
-                document.body.removeChild(content);
+                if (contentElement && contentElement.parentNode) {
+                    contentElement.parentNode.removeChild(contentElement);
+                }
 
                 const imgData = canvas.toDataURL('image/jpeg', 1.0);
                 const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
@@ -119,7 +120,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 const imgY = 30;
 
                 pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-
                 pdf.save(`${settings.title}.pdf`);
                 showMessage('PDFの保存が完了しました。');
             } catch (error) {
@@ -131,6 +131,10 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             showMessage('必要なライブラリの読み込みに失敗しました。');
         } finally {
             setIsExporting(false);
+            // 念のため、要素が残っている場合は削除
+            if (contentElement && contentElement.parentNode) {
+                contentElement.parentNode.removeChild(contentElement);
+            }
         }
     };
 
