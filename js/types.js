@@ -1,7 +1,8 @@
 const MENU_CATEGORIES = {
-    MAIN: 'main',
-    SIDE: 'side',
-    SOUP: 'soup',
+    JAPANESE: 'japanese',
+    WESTERN: 'western',
+    CHINESE: 'chinese',
+    DESSERT: 'dessert',
     OTHER: 'other'
 };
 
@@ -11,7 +12,7 @@ const INITIAL_MENUS = [
         id: '1',
         name: 'ハンバーグ',
         description: '手作りデミグラスソースのジューシーなハンバーグ',
-        category: MENU_CATEGORIES.MAIN,
+        category: MENU_CATEGORIES.WESTERN,
         image: null,
         ingredients: '牛ひき肉 300g, 玉ねぎ 1個, パン粉 1カップ, 牛乳 100ml, 塩コショウ 適量',
         lastCookedDate: '2024-03-20'
@@ -20,7 +21,7 @@ const INITIAL_MENUS = [
         id: '2',
         name: 'サラダ',
         description: '新鮮な野菜のミックスサラダ',
-        category: MENU_CATEGORIES.SIDE,
+        category: MENU_CATEGORIES.WESTERN,
         image: null,
         ingredients: 'レタス 1個, トマト 2個, きゅうり 1本, ドレッシング 適量',
         lastCookedDate: '2024-03-21'

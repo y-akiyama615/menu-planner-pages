@@ -1,4 +1,21 @@
 const MenuList = ({ items, onAddClick, onItemClick }) => {
+    const getCategoryLabel = (category) => {
+        switch (category) {
+            case MENU_CATEGORIES.JAPANESE:
+                return '和食';
+            case MENU_CATEGORIES.WESTERN:
+                return '洋食';
+            case MENU_CATEGORIES.CHINESE:
+                return '中華';
+            case MENU_CATEGORIES.DESSERT:
+                return 'デザート';
+            case MENU_CATEGORIES.OTHER:
+                return 'その他';
+            default:
+                return category;
+        }
+    };
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
             {items.map((item) => (
@@ -21,7 +38,7 @@ const MenuList = ({ items, onAddClick, onItemClick }) => {
                         )}
                         <div className="absolute top-2 right-2">
                             <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">
-                                {item.category}
+                                {getCategoryLabel(item.category)}
                             </span>
                         </div>
                     </div>

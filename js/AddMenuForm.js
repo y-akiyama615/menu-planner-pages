@@ -78,9 +78,10 @@ const AddMenuForm = ({ onSubmit, onCancel }) => {
                         value={formData.category}
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     >
-                        <option value={MENU_CATEGORIES.MAIN}>メイン</option>
-                        <option value={MENU_CATEGORIES.SIDE}>サイド</option>
-                        <option value={MENU_CATEGORIES.SOUP}>スープ</option>
+                        <option value={MENU_CATEGORIES.JAPANESE}>和食</option>
+                        <option value={MENU_CATEGORIES.WESTERN}>洋食</option>
+                        <option value={MENU_CATEGORIES.CHINESE}>中華</option>
+                        <option value={MENU_CATEGORIES.DESSERT}>デザート</option>
                         <option value={MENU_CATEGORIES.OTHER}>その他</option>
                     </select>
                 </div>
