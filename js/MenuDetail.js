@@ -63,9 +63,10 @@ const MenuDetail = ({ menu, onClose, onSave, onDelete }) => {
                                     onChange={(e) => setEditedMenu({ ...editedMenu, category: e.target.value })}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                                 >
-                                    <option value={MENU_CATEGORIES.MAIN}>メイン</option>
-                                    <option value={MENU_CATEGORIES.SIDE}>サイド</option>
-                                    <option value={MENU_CATEGORIES.SOUP}>スープ</option>
+                                    <option value={MENU_CATEGORIES.JAPANESE}>和食</option>
+                                    <option value={MENU_CATEGORIES.WESTERN}>洋食</option>
+                                    <option value={MENU_CATEGORIES.CHINESE}>中華</option>
+                                    <option value={MENU_CATEGORIES.DESSERT}>デザート</option>
                                     <option value={MENU_CATEGORIES.OTHER}>その他</option>
                                 </select>
                             </div>
@@ -154,7 +155,22 @@ const MenuDetail = ({ menu, onClose, onSave, onDelete }) => {
                             <div>
                                 <h3 className="text-lg font-medium text-gray-900">カテゴリー</h3>
                                 <span className="mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                                    {menu.category}
+                                    {(() => {
+                                        switch (menu.category) {
+                                            case MENU_CATEGORIES.JAPANESE:
+                                                return '和食';
+                                            case MENU_CATEGORIES.WESTERN:
+                                                return '洋食';
+                                            case MENU_CATEGORIES.CHINESE:
+                                                return '中華';
+                                            case MENU_CATEGORIES.DESSERT:
+                                                return 'デザート';
+                                            case MENU_CATEGORIES.OTHER:
+                                                return 'その他';
+                                            default:
+                                                return menu.category;
+                                        }
+                                    })()}
                                 </span>
                             </div>
 
