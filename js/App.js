@@ -45,14 +45,35 @@ const App = () => {
         setIsSettingsOpen(false);
     };
 
+    // 背景画像のURLを生成
+    const getBackgroundUrl = () => {
+        const timestamp = new Date().getTime(); // キャッシュ回避用
+        return `https://source.unsplash.com/featured/?${encodeURIComponent(settings.backgroundTheme)}&t=${timestamp}`;
+    };
+
     return (
-        <div className={`min-h-screen bg-[url('https://source.unsplash.com/featured/?${settings.backgroundTheme}')] bg-cover bg-center bg-fixed`}>
-            <div className="fixed top-4 right-4 z-50">
+        <div 
+            className="min-h-screen relative"
+            style={{
+                backgroundImage: `url('${getBackgroundUrl()}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed'
+            }}
+        >
+            {/* 設定ボタンを固定位置に配置 */}
+            <div className="fixed top-0 right-0 m-4 z-[9999]">
                 <button
                     onClick={() => setIsSettingsOpen(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-lg"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-lg backdrop-blur-sm"
+                    style={{
+                        position: 'fixed',
+                        top: '16px',
+                        right: '16px',
+                        WebkitTransform: 'translateZ(0)', // iOSでの固定位置の問題を解決
+                    }}
                 >
-                    設定
+                    ⚙️ 設定
                 </button>
             </div>
 

@@ -1,6 +1,8 @@
 const Settings = ({ settings, onSave, onClose, menus }) => {
     const [formData, setFormData] = React.useState(settings);
     const [isExporting, setIsExporting] = React.useState(false);
+    const [showDialog, setShowDialog] = React.useState(false);
+    const [dialogMessage, setDialogMessage] = React.useState('');
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -24,10 +26,18 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
         }
     };
 
+    const showMessage = (message) => {
+        setDialogMessage(message);
+        setShowDialog(true);
+    };
+
     const handleExportPDF = async () => {
         setIsExporting(true);
 
         try {
+            // iOSデバイスかどうかを判定
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
             // jsPDFとhtml2canvasをCDNから動的にロード
             await Promise.all([
                 new Promise((resolve, reject) => {
@@ -50,9 +60,9 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             const content = document.createElement('div');
             content.style.padding = '20px';
             content.style.background = 'white';
-            content.style.width = '800px'; // 固定幅を設定
+            content.style.width = '800px';
             content.style.position = 'absolute';
-            content.style.left = '-9999px'; // 画面外に配置
+            content.style.left = '-9999px';
             content.innerHTML = `
                 <h1 style="font-size: 24px; margin-bottom: 20px;">${settings.title}</h1>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
@@ -74,7 +84,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
 
             try {
                 const canvas = await html2canvas(content, {
-                    scale: 2, // 高解像度化
+                    scale: 2,
                     useCORS: true,
                     logging: false
                 });
@@ -92,21 +102,39 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 const imgY = 30;
 
                 pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-                pdf.save(`${settings.title}.pdf`);
+
+                if (isIOS) {
+                    // iOSの場合、Blobとして保存
+                    const pdfBlob = pdf.output('blob');
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = `${settings.title}.pdf`;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(blobUrl);
+                    showMessage('PDFの保存が完了しました。\nファイルアプリから保存先を選択してください。');
+                } else {
+                    // その他のデバイスの場合、通常のダウンロード
+                    pdf.save(`${settings.title}.pdf`);
+                    showMessage('PDFの保存が完了しました。');
+                }
             } catch (error) {
                 console.error('PDF生成エラー:', error);
-                alert('PDF生成中にエラーが発生しました。');
+                showMessage('PDF生成中にエラーが発生しました。');
             }
         } catch (error) {
             console.error('スクリプトロードエラー:', error);
-            alert('必要なライブラリの読み込みに失敗しました。');
+            showMessage('必要なライブラリの読み込みに失敗しました。');
         } finally {
             setIsExporting(false);
         }
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">設定</h2>
@@ -149,7 +177,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                     isExporting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
                                 } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
                             >
-                                {isExporting ? 'PDF生成中...' : 'メニュー一覧をPDF出力'}
+                                {isExporting ? '生成中...' : 'メニュー一覧をPDF出力'}
                             </button>
 
                             <div className="space-x-4">
@@ -171,6 +199,31 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                     </form>
                 </div>
             </div>
+
+            {/* ローディングインジケーター */}
+            {isExporting && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
+                    <div className="bg-white p-6 rounded-lg shadow-xl text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-gray-700">PDFを生成中...</p>
+                    </div>
+                </div>
+            )}
+
+            {/* 完了ダイアログ */}
+            {showDialog && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+                        <p className="text-gray-700 mb-4 whitespace-pre-line">{dialogMessage}</p>
+                        <button
+                            onClick={() => setShowDialog(false)}
+                            className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                        >
+                            OK
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }; 
