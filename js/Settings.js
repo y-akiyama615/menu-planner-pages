@@ -108,6 +108,12 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             tempContainer.style.top = '-9999px';
             document.body.appendChild(tempContainer);
 
+            // フィルタリング条件を作成
+            const selectedCategories = formData.selectedCategories || [];
+            const filteredMenus = selectedCategories.length === 0 
+                ? menus 
+                : menus.filter(menu => selectedCategories.includes(menu.category));
+
             // PDF用のコンテンツを作成
             contentElement = document.createElement('div');
             contentElement.style.padding = '20px';
@@ -116,17 +122,15 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             contentElement.innerHTML = `
                 <h1 style="font-size: 24px; margin-bottom: 40px; text-align: center;">${settings.title}</h1>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-                    ${menus
-                        .filter(menu => !formData.selectedCategories?.length || formData.selectedCategories.includes(menu.category))
-                        .map(menu => `
-                            <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
-                                <h3 style="font-size: 18px; margin-bottom: 10px;">${menu.name}</h3>
-                                <p style="color: #666;">
-                                    <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
-                                </p>
-                                ${menu.imageUrl ? `<img src="${menu.imageUrl}" style="width: 100%; height: 150px; object-fit: cover; margin-top: 10px; border-radius: 4px;">` : ''}
-                            </div>
-                        `).join('')}
+                    ${filteredMenus.map(menu => `
+                        <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
+                            <h3 style="font-size: 18px; margin-bottom: 10px;">${menu.name}</h3>
+                            <p style="color: #666;">
+                                <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
+                            </p>
+                            ${menu.imageUrl ? `<img src="${menu.imageUrl}" style="width: 100%; height: 150px; object-fit: cover; margin-top: 10px; border-radius: 4px;">` : ''}
+                        </div>
+                    `).join('')}
                 </div>
             `;
 
@@ -212,7 +216,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                     <label key={category} className="flex items-center">
                                         <input
                                             type="checkbox"
-                                            checked={formData.selectedCategories?.includes(category)}
+                                            checked={formData.selectedCategories && formData.selectedCategories.includes(category)}
                                             onChange={() => handleCategoryToggle(category)}
                                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
                                         />
