@@ -5,15 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>家庭のメニュー表</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 </head>
 <body>
-    <div id="root"></div>
-    <script type="text/babel" src="js/types.js"></script>
-    <script type="text/babel" src="js/MenuList.js"></script>
-    <script type="text/babel" src="js/AddMenuForm.js"></script>
-    <script type="text/babel" src="js/App.js"></script>
+    <div id="root">
+        <p>Loading...</p>
+    </div>
+
+    <!-- React と Babel の読み込み -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <!-- アプリケーションコード -->
+    <script type="text/babel" src="./js/types.js"></script>
+    <script type="text/babel" src="./js/MenuList.js"></script>
+    <script type="text/babel" src="./js/AddMenuForm.js"></script>
+    <script type="text/babel" src="./js/App.js"></script>
+
+    <!-- エラー表示用 -->
+    <script>
+        window.onerror = function(msg, url, line) {
+            console.error('Error:', msg);
+            console.error('URL:', url);
+            console.error('Line:', line);
+            document.getElementById('root').innerHTML += `
+                <div style="color: red; padding: 20px;">
+                    Error: ${msg}<br>
+                    File: ${url}<br>
+                    Line: ${line}
+                </div>
+            `;
+            return false;
+        };
+    </script>
 </body>
 </html> 
