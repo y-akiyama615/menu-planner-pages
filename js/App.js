@@ -4,12 +4,22 @@ const App = () => {
         return savedMenus ? JSON.parse(savedMenus) : INITIAL_MENUS;
     });
 
+    const [settings, setSettings] = React.useState(() => {
+        const savedSettings = localStorage.getItem('settings');
+        return savedSettings ? JSON.parse(savedSettings) : INITIAL_SETTINGS;
+    });
+
     const [isAddingMenu, setIsAddingMenu] = React.useState(false);
     const [selectedMenu, setSelectedMenu] = React.useState(null);
+    const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
     React.useEffect(() => {
         localStorage.setItem('menus', JSON.stringify(menus));
     }, [menus]);
+
+    React.useEffect(() => {
+        localStorage.setItem('settings', JSON.stringify(settings));
+    }, [settings]);
 
     const handleAddMenu = (menuData) => {
         const newMenu = {
@@ -30,8 +40,13 @@ const App = () => {
         setSelectedMenu(null);
     };
 
+    const handleUpdateSettings = (newSettings) => {
+        setSettings(newSettings);
+        setIsSettingsOpen(false);
+    };
+
     return (
-        <div className="min-h-screen bg-[url('https://source.unsplash.com/featured/?french,restaurant,interior')] bg-cover bg-center bg-fixed">
+        <div className={`min-h-screen bg-[url('https://source.unsplash.com/featured/?${settings.backgroundTheme}')] bg-cover bg-center bg-fixed`}>
             <div className="min-h-screen bg-white/90 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto py-6">
                     <div className="px-4 sm:px-6 lg:px-8">
@@ -39,10 +54,18 @@ const App = () => {
                             <React.Fragment>
                                 <div className="sm:flex sm:items-center">
                                     <div className="sm:flex-auto">
-                                        <h1 className="text-3xl font-semibold text-gray-900">家庭のメニュー表</h1>
+                                        <h1 className="text-3xl font-semibold text-gray-900">{settings.title}</h1>
                                         <p className="mt-2 text-sm text-gray-700">
                                             家族で共有する料理メニューの一覧です。新しいメニューを追加して、バリエーションを増やしましょう。
                                         </p>
+                                    </div>
+                                    <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+                                        <button
+                                            onClick={() => setIsSettingsOpen(true)}
+                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            設定
+                                        </button>
                                     </div>
                                 </div>
                                 <div className="mt-8">
@@ -77,6 +100,13 @@ const App = () => {
                     </div>
                 </div>
             </div>
+            {isSettingsOpen && (
+                <Settings
+                    settings={settings}
+                    onSave={handleUpdateSettings}
+                    onClose={() => setIsSettingsOpen(false)}
+                />
+            )}
         </div>
     );
 };

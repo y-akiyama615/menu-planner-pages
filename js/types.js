@@ -6,6 +6,20 @@ const MENU_CATEGORIES = {
     OTHER: 'other'
 };
 
+const BACKGROUND_THEMES = {
+    FRENCH: 'french,restaurant,interior',
+    JAPANESE: 'japanese,restaurant,interior',
+    KITCHEN: 'cooking,kitchen',
+    CAFE: 'cafe,interior',
+    DINING: 'dining,room'
+};
+
+// アプリケーション設定の初期値
+const INITIAL_SETTINGS = {
+    title: '家庭のメニュー表',
+    backgroundTheme: BACKGROUND_THEMES.FRENCH
+};
+
 // メニューの初期データ
 const INITIAL_MENUS = [
     {
