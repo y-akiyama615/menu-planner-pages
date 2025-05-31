@@ -47,6 +47,15 @@ const App = () => {
 
     return (
         <div className={`min-h-screen bg-[url('https://source.unsplash.com/featured/?${settings.backgroundTheme}')] bg-cover bg-center bg-fixed`}>
+            <div className="fixed top-4 right-4 z-50">
+                <button
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-lg"
+                >
+                    設定
+                </button>
+            </div>
+
             <div className="min-h-screen bg-white/90 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto py-6">
                     <div className="px-4 sm:px-6 lg:px-8">
@@ -58,14 +67,6 @@ const App = () => {
                                         <p className="mt-2 text-sm text-gray-700">
                                             家族で共有する料理メニューの一覧です。新しいメニューを追加して、バリエーションを増やしましょう。
                                         </p>
-                                    </div>
-                                    <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-                                        <button
-                                            onClick={() => setIsSettingsOpen(true)}
-                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                                        >
-                                            設定
-                                        </button>
                                     </div>
                                 </div>
                                 <div className="mt-8">
@@ -103,6 +104,7 @@ const App = () => {
             {isSettingsOpen && (
                 <Settings
                     settings={settings}
+                    menus={menus}
                     onSave={handleUpdateSettings}
                     onClose={() => setIsSettingsOpen(false)}
                 />
