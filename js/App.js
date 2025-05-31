@@ -110,7 +110,7 @@ const App = () => {
                                 </div>
                             </React.Fragment>
                         ) : isAddingMenu ? (
-                            <React.Fragment>
+                            <div className="overflow-y-auto max-h-[calc(100vh-2rem)]">
                                 <div className="mb-8">
                                     <h1 className="text-3xl font-semibold text-gray-900">新しいメニューを追加</h1>
                                     <p className="mt-2 text-sm text-gray-700">
@@ -121,7 +121,7 @@ const App = () => {
                                     onSubmit={handleAddMenu}
                                     onCancel={() => setIsAddingMenu(false)}
                                 />
-                            </React.Fragment>
+                            </div>
                         ) : selectedMenu && (
                             <div className="overflow-y-auto max-h-[calc(100vh-2rem)]">
                                 <MenuDetail

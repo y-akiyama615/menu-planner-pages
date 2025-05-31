@@ -120,22 +120,8 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
 
                 pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
 
-                if (isIOS) {
-                    const pdfBlob = pdf.output('blob');
-                    const blobUrl = URL.createObjectURL(pdfBlob);
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = `${settings.title}.pdf`;
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(blobUrl);
-                    showMessage('PDFの保存が完了しました。\nファイルアプリから保存先を選択してください。');
-                } else {
-                    pdf.save(`${settings.title}.pdf`);
-                    showMessage('PDFの保存が完了しました。');
-                }
+                pdf.save(`${settings.title}.pdf`);
+                showMessage('PDFの保存が完了しました。');
             } catch (error) {
                 console.error('PDF生成エラー:', error);
                 showMessage('PDF生成中にエラーが発生しました。');
