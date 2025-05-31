@@ -39,7 +39,7 @@ const App = () => {
             <div className="max-w-7xl mx-auto py-6">
                 <div className="px-4 sm:px-6 lg:px-8">
                     {!isAddingMenu ? (
-                        <>
+                        <React.Fragment>
                             <div className="sm:flex sm:items-center">
                                 <div className="sm:flex-auto">
                                     <h1 className="text-3xl font-semibold text-gray-900">家庭のメニュー表</h1>
@@ -51,9 +51,9 @@ const App = () => {
                             <div className="mt-8">
                                 <MenuList items={menus} onAddClick={() => setIsAddingMenu(true)} />
                             </div>
-                        </>
+                        </React.Fragment>
                     ) : (
-                        <>
+                        <React.Fragment>
                             <div className="mb-8">
                                 <h1 className="text-3xl font-semibold text-gray-900">新しいメニューを追加</h1>
                                 <p className="mt-2 text-sm text-gray-700">
@@ -64,7 +64,7 @@ const App = () => {
                                 onSubmit={handleAddMenu}
                                 onCancel={() => setIsAddingMenu(false)}
                             />
-                        </>
+                        </React.Fragment>
                     )}
                 </div>
             </div>
