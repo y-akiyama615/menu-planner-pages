@@ -70,7 +70,6 @@ const App = () => {
                 backgroundAttachment: 'fixed'
             }}
         >
-            {/* 設定ボタンを固定位置に配置（メニュー詳細画面時は非表示） */}
             {!selectedMenu && !isAddingMenu && (
                 <div className="fixed top-0 right-0 m-4 z-[9999]">
                     <button
@@ -109,27 +108,31 @@ const App = () => {
                                     />
                                 </div>
                             </React.Fragment>
-                        ) : isAddingMenu ? (
-                            <div className="overflow-y-auto max-h-[calc(100vh-2rem)]">
-                                <div className="mb-8">
-                                    <h1 className="text-3xl font-semibold text-gray-900">新しいメニューを追加</h1>
-                                    <p className="mt-2 text-sm text-gray-700">
-                                        新しい料理メニューの情報を入力してください。
-                                    </p>
+                        ) : (
+                            <div className="fixed inset-0 bg-white/90 backdrop-blur-sm overflow-y-auto z-[999]">
+                                <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                                    {isAddingMenu ? (
+                                        <div>
+                                            <div className="mb-8">
+                                                <h1 className="text-3xl font-semibold text-gray-900">新しいメニューを追加</h1>
+                                                <p className="mt-2 text-sm text-gray-700">
+                                                    新しい料理メニューの情報を入力してください。
+                                                </p>
+                                            </div>
+                                            <AddMenuForm
+                                                onSubmit={handleAddMenu}
+                                                onCancel={() => setIsAddingMenu(false)}
+                                            />
+                                        </div>
+                                    ) : selectedMenu && (
+                                        <MenuDetail
+                                            menu={selectedMenu}
+                                            onClose={() => setSelectedMenu(null)}
+                                            onSave={handleUpdateMenu}
+                                            onDelete={() => handleDeleteMenu(selectedMenu.id)}
+                                        />
+                                    )}
                                 </div>
-                                <AddMenuForm
-                                    onSubmit={handleAddMenu}
-                                    onCancel={() => setIsAddingMenu(false)}
-                                />
-                            </div>
-                        ) : selectedMenu && (
-                            <div className="overflow-y-auto max-h-[calc(100vh-2rem)]">
-                                <MenuDetail
-                                    menu={selectedMenu}
-                                    onClose={() => setSelectedMenu(null)}
-                                    onSave={handleUpdateMenu}
-                                    onDelete={() => handleDeleteMenu(selectedMenu.id)}
-                                />
                             </div>
                         )}
                     </div>

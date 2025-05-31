@@ -120,17 +120,21 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             contentElement.style.background = 'white';
             contentElement.style.width = '800px';
             contentElement.innerHTML = `
-                <h1 style="font-size: 24px; margin-bottom: 40px; text-align: center;">${settings.title}</h1>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-                    ${filteredMenus.map(menu => `
-                        <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
-                            <h3 style="font-size: 18px; margin-bottom: 10px;">${menu.name}</h3>
-                            <p style="color: #666;">
-                                <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
-                            </p>
-                            ${menu.imageUrl ? `<img src="${menu.imageUrl}" style="width: 100%; height: 150px; object-fit: cover; margin-top: 10px; border-radius: 4px;">` : ''}
+                <div style="background: url('${getBackgroundUrl()}') center/cover no-repeat; padding: 40px; min-height: 100%;">
+                    <div style="background: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 12px;">
+                        <h1 style="font-size: 24px; margin-bottom: 40px; text-align: center;">${settings.title}</h1>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                            ${filteredMenus.map(menu => `
+                                <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: white;">
+                                    <h3 style="font-size: 18px; margin-bottom: 10px;">${menu.name}</h3>
+                                    <p style="color: #666;">
+                                        <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
+                                    </p>
+                                    ${menu.image ? `<img src="${menu.image}" style="width: 100%; height: 150px; object-fit: cover; margin-top: 10px; border-radius: 4px;">` : ''}
+                                </div>
+                            `).join('')}
                         </div>
-                    `).join('')}
+                    </div>
                 </div>
             `;
 
@@ -140,7 +144,9 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 const canvas = await html2canvas(contentElement, {
                     scale: 2,
                     useCORS: true,
-                    logging: false
+                    allowTaint: true,
+                    logging: false,
+                    backgroundColor: null
                 });
 
                 const imgData = canvas.toDataURL('image/jpeg', 1.0);
