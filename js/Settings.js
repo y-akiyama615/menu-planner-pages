@@ -1,5 +1,8 @@
 const Settings = ({ settings, onSave, onClose, menus }) => {
-    const [formData, setFormData] = React.useState(settings);
+    const [formData, setFormData] = React.useState({
+        ...settings,
+        selectedCategories: settings.selectedCategories || []
+    });
     const [isExporting, setIsExporting] = React.useState(false);
     const [showDialog, setShowDialog] = React.useState(false);
     const [dialogMessage, setDialogMessage] = React.useState('');
@@ -26,6 +29,23 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
         }
     };
 
+    const handleCategoryToggle = (category) => {
+        setFormData(prev => {
+            const selectedCategories = prev.selectedCategories || [];
+            if (selectedCategories.includes(category)) {
+                return {
+                    ...prev,
+                    selectedCategories: selectedCategories.filter(c => c !== category)
+                };
+            } else {
+                return {
+                    ...prev,
+                    selectedCategories: [...selectedCategories, category]
+                };
+            }
+        });
+    };
+
     const showMessage = (message) => {
         setDialogMessage(message);
         setShowDialog(true);
@@ -35,10 +55,8 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
         setIsExporting(true);
 
         try {
-            // iOSデバイスかどうかを判定
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-            // jsPDFとhtml2canvasをCDNから動的にロード
             await Promise.all([
                 new Promise((resolve, reject) => {
                     const script = document.createElement('script');
@@ -56,7 +74,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 })
             ]);
 
-            // メニュー一覧のHTMLを生成
             const content = document.createElement('div');
             content.style.padding = '20px';
             content.style.background = 'white';
@@ -64,19 +81,19 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             content.style.position = 'absolute';
             content.style.left = '-9999px';
             content.innerHTML = `
-                <h1 style="font-size: 24px; margin-bottom: 20px;">${settings.title}</h1>
+                <h1 style="font-size: 24px; margin-bottom: 40px; text-align: center;">${settings.title}</h1>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-                    ${menus.map(menu => `
-                        <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
-                            <h3 style="font-size: 18px; margin-bottom: 10px;">${menu.name}</h3>
-                            <p style="color: #666;">${menu.description || ''}</p>
-                            <p style="margin-top: 10px;">
-                                <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}<br>
-                                <strong>材料:</strong> ${menu.ingredients || ''}<br>
-                                <strong>最終作成日:</strong> ${menu.lastCookedDate || ''}
-                            </p>
-                        </div>
-                    `).join('')}
+                    ${menus
+                        .filter(menu => !formData.selectedCategories?.length || formData.selectedCategories.includes(menu.category))
+                        .map(menu => `
+                            <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px;">
+                                <h3 style="font-size: 18px; margin-bottom: 10px;">${menu.name}</h3>
+                                <p style="color: #666;">
+                                    <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
+                                </p>
+                                ${menu.imageUrl ? `<img src="${menu.imageUrl}" style="width: 100%; height: 150px; object-fit: cover; margin-top: 10px; border-radius: 4px;">` : ''}
+                            </div>
+                        `).join('')}
                 </div>
             `;
 
@@ -104,7 +121,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
 
                 if (isIOS) {
-                    // iOSの場合、Blobとして保存
                     const pdfBlob = pdf.output('blob');
                     const blobUrl = URL.createObjectURL(pdfBlob);
                     const link = document.createElement('a');
@@ -117,7 +133,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                     URL.revokeObjectURL(blobUrl);
                     showMessage('PDFの保存が完了しました。\nファイルアプリから保存先を選択してください。');
                 } else {
-                    // その他のデバイスの場合、通常のダウンロード
                     pdf.save(`${settings.title}.pdf`);
                     showMessage('PDFの保存が完了しました。');
                 }
@@ -168,6 +183,25 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                             </select>
                         </div>
 
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                表示するカテゴリ（未選択の場合は全て表示）
+                            </label>
+                            <div className="space-y-2">
+                                {Object.values(MENU_CATEGORIES).map(category => (
+                                    <label key={category} className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.selectedCategories?.includes(category)}
+                                            onChange={() => handleCategoryToggle(category)}
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                                        />
+                                        {getCategoryLabel(category)}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="flex justify-between">
                             <button
                                 type="button"
@@ -177,7 +211,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                     isExporting ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
                                 } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
                             >
-                                {isExporting ? '生成中...' : 'メニュー一覧をPDF出力'}
+                                {isExporting ? '生成中...' : 'PDF出力'}
                             </button>
 
                             <div className="space-x-4">
@@ -200,7 +234,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 </div>
             </div>
 
-            {/* ローディングインジケーター */}
             {isExporting && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
                     <div className="bg-white p-6 rounded-lg shadow-xl text-center">
@@ -210,7 +243,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 </div>
             )}
 
-            {/* 完了ダイアログ */}
             {showDialog && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
                     <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">

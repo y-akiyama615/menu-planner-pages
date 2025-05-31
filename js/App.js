@@ -21,6 +21,13 @@ const App = () => {
         localStorage.setItem('settings', JSON.stringify(settings));
     }, [settings]);
 
+    // 背景画像のURLを生成
+    const getBackgroundUrl = () => {
+        const timestamp = new Date().getTime(); // キャッシュ回避用
+        const encodedTheme = encodeURIComponent(settings.backgroundTheme);
+        return `https://source.unsplash.com/1600x900/?${encodedTheme}&t=${timestamp}`;
+    };
+
     const handleAddMenu = (menuData) => {
         const newMenu = {
             ...menuData,
@@ -45,11 +52,13 @@ const App = () => {
         setIsSettingsOpen(false);
     };
 
-    // 背景画像のURLを生成
-    const getBackgroundUrl = () => {
-        const timestamp = new Date().getTime(); // キャッシュ回避用
-        return `https://source.unsplash.com/featured/?${encodeURIComponent(settings.backgroundTheme)}&t=${timestamp}`;
-    };
+    // フィルタリングされたメニューを取得
+    const filteredMenus = React.useMemo(() => {
+        if (!settings.selectedCategories || settings.selectedCategories.length === 0) {
+            return menus;
+        }
+        return menus.filter(menu => settings.selectedCategories.includes(menu.category));
+    }, [menus, settings.selectedCategories]);
 
     return (
         <div 
@@ -61,21 +70,23 @@ const App = () => {
                 backgroundAttachment: 'fixed'
             }}
         >
-            {/* 設定ボタンを固定位置に配置 */}
-            <div className="fixed top-0 right-0 m-4 z-[9999]">
-                <button
-                    onClick={() => setIsSettingsOpen(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-lg backdrop-blur-sm"
-                    style={{
-                        position: 'fixed',
-                        top: '16px',
-                        right: '16px',
-                        WebkitTransform: 'translateZ(0)', // iOSでの固定位置の問題を解決
-                    }}
-                >
-                    ⚙️ 設定
-                </button>
-            </div>
+            {/* 設定ボタンを固定位置に配置（メニュー詳細画面時は非表示） */}
+            {!selectedMenu && !isAddingMenu && (
+                <div className="fixed top-0 right-0 m-4 z-[9999]">
+                    <button
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-lg backdrop-blur-sm"
+                        style={{
+                            position: 'fixed',
+                            top: '16px',
+                            right: '16px',
+                            WebkitTransform: 'translateZ(0)',
+                        }}
+                    >
+                        ⚙️ 設定
+                    </button>
+                </div>
+            )}
 
             <div className="min-h-screen bg-white/90 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto py-6">
@@ -92,7 +103,7 @@ const App = () => {
                                 </div>
                                 <div className="mt-8">
                                     <MenuList
-                                        items={menus}
+                                        items={filteredMenus}
                                         onAddClick={() => setIsAddingMenu(true)}
                                         onItemClick={setSelectedMenu}
                                     />
@@ -112,12 +123,14 @@ const App = () => {
                                 />
                             </React.Fragment>
                         ) : selectedMenu && (
-                            <MenuDetail
-                                menu={selectedMenu}
-                                onClose={() => setSelectedMenu(null)}
-                                onSave={handleUpdateMenu}
-                                onDelete={() => handleDeleteMenu(selectedMenu.id)}
-                            />
+                            <div className="overflow-y-auto max-h-[calc(100vh-2rem)]">
+                                <MenuDetail
+                                    menu={selectedMenu}
+                                    onClose={() => setSelectedMenu(null)}
+                                    onSave={handleUpdateMenu}
+                                    onDelete={() => handleDeleteMenu(selectedMenu.id)}
+                                />
+                            </div>
                         )}
                     </div>
                 </div>
