@@ -1,15 +1,16 @@
-const MenuList = ({ items, onAddClick }) => {
+const MenuList = ({ items, onAddClick, onItemClick }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
             {items.map((item) => (
                 <div
                     key={item.id}
-                    className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                    onClick={() => onItemClick(item)}
+                    className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
                 >
                     <div className="relative h-48">
-                        {item.imageUrl ? (
+                        {item.image ? (
                             <img
-                                src={item.imageUrl}
+                                src={item.image}
                                 alt={item.name}
                                 className="w-full h-full object-cover"
                             />
@@ -27,6 +28,11 @@ const MenuList = ({ items, onAddClick }) => {
                     <div className="p-4">
                         <h3 className="text-xl font-bold mb-2">{item.name}</h3>
                         <p className="text-gray-600">{item.description}</p>
+                        {item.lastCookedDate && (
+                            <p className="text-sm text-gray-500 mt-2">
+                                最終作成日: {item.lastCookedDate}
+                            </p>
+                        )}
                     </div>
                 </div>
             ))}

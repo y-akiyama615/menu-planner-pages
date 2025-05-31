@@ -3,12 +3,25 @@ const AddMenuForm = ({ onSubmit, onCancel }) => {
         name: '',
         description: '',
         category: MENU_CATEGORIES.MAIN,
-        imageUrl: '',
+        image: null,
+        ingredients: '',
+        lastCookedDate: new Date().toISOString().split('T')[0]
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
         onSubmit(formData);
+    };
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData({ ...formData, image: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     return (
@@ -42,6 +55,20 @@ const AddMenuForm = ({ onSubmit, onCancel }) => {
                 </div>
 
                 <div>
+                    <label htmlFor="ingredients" className="block text-sm font-medium text-gray-700">
+                        材料（任意）
+                    </label>
+                    <textarea
+                        id="ingredients"
+                        rows={3}
+                        placeholder="例: 玉ねぎ 1個, にんじん 2本..."
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        value={formData.ingredients}
+                        onChange={(e) => setFormData({ ...formData, ingredients: e.target.value })}
+                    />
+                </div>
+
+                <div>
                     <label htmlFor="category" className="block text-sm font-medium text-gray-700">
                         カテゴリー
                     </label>
@@ -59,15 +86,35 @@ const AddMenuForm = ({ onSubmit, onCancel }) => {
                 </div>
 
                 <div>
-                    <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700">
-                        画像URL（任意）
+                    <label htmlFor="image" className="block text-sm font-medium text-gray-700">
+                        画像（任意）
                     </label>
                     <input
-                        type="url"
-                        id="imageUrl"
+                        type="file"
+                        id="image"
+                        accept="image/*"
+                        className="mt-1 block w-full"
+                        onChange={handleImageChange}
+                    />
+                    {formData.image && (
+                        <img
+                            src={formData.image}
+                            alt="プレビュー"
+                            className="mt-2 h-48 w-full object-cover rounded-lg"
+                        />
+                    )}
+                </div>
+
+                <div>
+                    <label htmlFor="lastCookedDate" className="block text-sm font-medium text-gray-700">
+                        最終作成日（任意）
+                    </label>
+                    <input
+                        type="date"
+                        id="lastCookedDate"
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        value={formData.imageUrl}
-                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                        value={formData.lastCookedDate}
+                        onChange={(e) => setFormData({ ...formData, lastCookedDate: e.target.value })}
                     />
                 </div>
 
