@@ -7,6 +7,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     const [showDialog, setShowDialog] = React.useState(false);
     const [dialogMessage, setDialogMessage] = React.useState('');
     const [scriptsLoaded, setScriptsLoaded] = React.useState(false);
+    const [dialogKey, setDialogKey] = React.useState(0);
 
     // スクリプトの読み込み状態を管理
     React.useEffect(() => {
@@ -88,7 +89,35 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     const showMessage = (message) => {
         setDialogMessage(message);
         setShowDialog(true);
+        setDialogKey(prev => prev + 1);
     };
+
+    const handleCloseDialog = React.useCallback(() => {
+        setShowDialog(false);
+        setDialogMessage('');
+    }, []);
+
+    const handleDialogClick = React.useCallback((e) => {
+        if (e.target === e.currentTarget) {
+            handleCloseDialog();
+        }
+    }, [handleCloseDialog]);
+
+    React.useEffect(() => {
+        const handleEscKey = (e) => {
+            if (e.key === 'Escape' && showDialog) {
+                handleCloseDialog();
+            }
+        };
+
+        if (showDialog) {
+            document.addEventListener('keydown', handleEscKey);
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscKey);
+        };
+    }, [showDialog, handleCloseDialog]);
 
     const handleExportPDF = async () => {
         if (!scriptsLoaded) {
@@ -274,12 +303,20 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             )}
 
             {showDialog && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
-                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+                <div 
+                    key={dialogKey}
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]"
+                    onClick={handleDialogClick}
+                >
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
                         <p className="text-gray-700 mb-4 whitespace-pre-line">{dialogMessage}</p>
                         <button
-                            onClick={() => setShowDialog(false)}
-                            className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                            onClick={handleCloseDialog}
+                            className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            style={{
+                                WebkitTapHighlightColor: 'transparent',
+                                touchAction: 'manipulation'
+                            }}
                         >
                             OK
                         </button>
