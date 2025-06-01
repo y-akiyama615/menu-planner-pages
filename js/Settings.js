@@ -2,7 +2,8 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     const [formData, setFormData] = React.useState({
         ...settings,
         selectedCategories: settings.selectedCategories || [],
-        customBackground: settings.customBackground || null
+        customBackground: settings.customBackground || null,
+        customTopBackground: settings.customTopBackground || null
     });
     const [isExporting, setIsExporting] = React.useState(false);
     const [showDialog, setShowDialog] = React.useState(false);
@@ -170,15 +171,19 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             contentElement.style.fontFamily = 'Helvetica, Arial, sans-serif';
 
             // フレンチレストランの背景画像URL
-            const backgroundImageUrl = formData.backgroundTheme === 'custom' && formData.customBackground
+            const menuBackgroundImageUrl = formData.backgroundTheme === 'custom' && formData.customBackground
                 ? formData.customBackground
                 : 'https://source.unsplash.com/1600x900/?french,restaurant,elegant';
+
+            const topBackgroundImageUrl = formData.customTopBackground
+                ? formData.customTopBackground
+                : 'https://source.unsplash.com/1600x900/?french,restaurant,luxury';
 
             contentElement.innerHTML = `
                 <div style="
                     background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)), 
-                    url('${backgroundImageUrl}') center/cover no-repeat; 
-                    padding: 40px; 
+                    url('${topBackgroundImageUrl}') center/cover no-repeat; 
+                    padding: 40px 40px 60px; 
                     min-height: 100%;
                     font-family: Helvetica, Arial, sans-serif;
                 ">
@@ -198,53 +203,60 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                         "></div>
                     </div>
                     <div style="
-                        display: grid; 
-                        grid-template-columns: repeat(2, 1fr); 
-                        gap: 25px;
-                        font-family: Helvetica, Arial, sans-serif;
+                        background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)), 
+                        url('${menuBackgroundImageUrl}') center/cover no-repeat;
+                        padding: 30px;
+                        border-radius: 12px;
                     ">
-                        ${filteredMenus.map(menu => `
-                            <div style="
-                                border: 1px solid #e1e1e1;
-                                padding: 20px;
-                                border-radius: 8px;
-                                background: white;
-                                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                            ">
-                                <h3 style="
-                                    font-size: 20px;
-                                    margin-bottom: 12px;
-                                    color: #2c3e50;
-                                    font-family: Helvetica, Arial, sans-serif;
-                                ">${menu.name}</h3>
-                                <p style="
-                                    color: #666;
-                                    font-size: 14px;
-                                    margin-bottom: 15px;
-                                    font-family: Helvetica, Arial, sans-serif;
+                        <div style="
+                            display: grid; 
+                            grid-template-columns: repeat(2, 1fr); 
+                            gap: 25px;
+                            font-family: Helvetica, Arial, sans-serif;
+                        ">
+                            ${filteredMenus.map(menu => `
+                                <div style="
+                                    border: 1px solid #e1e1e1;
+                                    padding: 20px;
+                                    border-radius: 8px;
+                                    background: white;
+                                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                                 ">
-                                    <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
-                                </p>
-                                ${menu.image ? `
-                                    <div style="
-                                        width: 100%;
-                                        height: 150px;
-                                        overflow: hidden;
-                                        border-radius: 4px;
-                                        margin-top: 10px;
+                                    <h3 style="
+                                        font-size: 20px;
+                                        margin-bottom: 12px;
+                                        color: #2c3e50;
+                                        font-family: Helvetica, Arial, sans-serif;
+                                    ">${menu.name}</h3>
+                                    <p style="
+                                        color: #666;
+                                        font-size: 14px;
+                                        margin-bottom: 15px;
+                                        font-family: Helvetica, Arial, sans-serif;
                                     ">
-                                        <img 
-                                            src="${menu.image}" 
-                                            style="
-                                                width: 100%;
-                                                height: 100%;
-                                                object-fit: cover;
-                                            "
-                                        >
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `).join('')}
+                                        <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
+                                    </p>
+                                    ${menu.image ? `
+                                        <div style="
+                                            width: 100%;
+                                            height: 150px;
+                                            overflow: hidden;
+                                            border-radius: 4px;
+                                            margin-top: 10px;
+                                        ">
+                                            <img 
+                                                src="${menu.image}" 
+                                                style="
+                                                    width: 100%;
+                                                    height: 100%;
+                                                    object-fit: cover;
+                                                "
+                                            >
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
                 </div>
             `;
@@ -285,7 +297,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             const imgHeight = canvas.height;
             const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
             const imgX = (pdfWidth - imgWidth * ratio) / 2;
-            const imgY = 30;
+            const imgY = 10; // 上部の余白を10mmに変更
 
             pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
             pdf.save(`${settings.title}.pdf`);
@@ -302,7 +314,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
         }
     };
 
-    const handleBackgroundImageUpload = (e) => {
+    const handleBackgroundImageUpload = (e, type = 'menu') => {
         const file = e.target.files[0];
         if (file) {
             // ファイルサイズのチェック（5MB制限）
@@ -333,8 +345,14 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                     }
                     setFormData(prev => ({
                         ...prev,
-                        customBackground: reader.result,
-                        backgroundTheme: 'custom'
+                        ...(type === 'menu' 
+                            ? { 
+                                customBackground: reader.result,
+                                backgroundTheme: 'custom'
+                            }
+                            : {
+                                customTopBackground: reader.result
+                            })
                     }));
                 };
                 img.src = reader.result;
@@ -390,13 +408,53 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
 
                             <div className="mt-4 p-4 bg-gray-50 rounded-md">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    カスタム背景画像
+                                    トップページの背景画像
                                 </label>
                                 <div className="space-y-4">
                                     <input
                                         type="file"
                                         accept="image/jpeg,image/png,image/gif"
-                                        onChange={handleBackgroundImageUpload}
+                                        onChange={(e) => handleBackgroundImageUpload(e, 'top')}
+                                        className="block w-full text-sm text-gray-500
+                                            file:mr-4 file:py-2 file:px-4
+                                            file:rounded-md file:border-0
+                                            file:text-sm file:font-semibold
+                                            file:bg-blue-50 file:text-blue-700
+                                            hover:file:bg-blue-100"
+                                    />
+                                    {formData.customTopBackground && (
+                                        <div className="relative">
+                                            <img
+                                                src={formData.customTopBackground}
+                                                alt="トップページの背景"
+                                                className="w-full h-40 object-cover rounded-md"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({
+                                                    ...prev,
+                                                    customTopBackground: null
+                                                }))}
+                                                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    メニュー一覧の背景画像
+                                </label>
+                                <div className="space-y-4">
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif"
+                                        onChange={(e) => handleBackgroundImageUpload(e, 'menu')}
                                         className="block w-full text-sm text-gray-500
                                             file:mr-4 file:py-2 file:px-4
                                             file:rounded-md file:border-0
@@ -408,7 +466,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                         <div className="relative">
                                             <img
                                                 src={formData.customBackground}
-                                                alt="カスタム背景"
+                                                alt="メニュー一覧の背景"
                                                 className="w-full h-40 object-cover rounded-md"
                                             />
                                             <button
