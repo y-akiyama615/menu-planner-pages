@@ -170,8 +170,8 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             contentElement.style.width = '800px';
             contentElement.style.fontFamily = 'Helvetica, Arial, sans-serif';
 
-            // フレンチレストランの背景画像URL
-            const menuBackgroundImageUrl = formData.backgroundTheme === 'custom' && formData.customBackground
+            // 背景画像URL
+            const menuBackgroundImageUrl = formData.customBackground
                 ? formData.customBackground
                 : 'https://source.unsplash.com/1600x900/?french,restaurant,elegant';
 
@@ -346,29 +346,14 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                     setFormData(prev => ({
                         ...prev,
                         ...(type === 'menu' 
-                            ? { 
-                                customBackground: reader.result,
-                                backgroundTheme: 'custom'
-                            }
-                            : {
-                                customTopBackground: reader.result
-                            })
+                            ? { customBackground: reader.result }
+                            : { customTopBackground: reader.result })
                     }));
                 };
                 img.src = reader.result;
             };
             reader.readAsDataURL(file);
         }
-    };
-
-    // 背景画像のURLを取得する関数を修正
-    const getBackgroundUrl = () => {
-        if (formData.backgroundTheme === 'custom' && formData.customBackground) {
-            return formData.customBackground;
-        }
-        const timestamp = new Date().getTime();
-        const encodedTheme = encodeURIComponent(formData.backgroundTheme);
-        return `https://source.unsplash.com/1600x900/?${encodedTheme}&t=${timestamp}`;
     };
 
     return (
@@ -390,23 +375,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                         </div>
 
                         <div className="space-y-4">
-                            <label className="block text-sm font-medium text-gray-700">
-                                背景テーマ
-                            </label>
-                            <select
-                                value={formData.backgroundTheme}
-                                onChange={(e) => setFormData({ ...formData, backgroundTheme: e.target.value })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            >
-                                <option value={BACKGROUND_THEMES.FRENCH}>フレンチレストラン</option>
-                                <option value={BACKGROUND_THEMES.JAPANESE}>和食レストラン</option>
-                                <option value={BACKGROUND_THEMES.KITCHEN}>キッチン</option>
-                                <option value={BACKGROUND_THEMES.CAFE}>カフェ</option>
-                                <option value={BACKGROUND_THEMES.DINING}>ダイニング</option>
-                                {formData.customBackground && <option value="custom">カスタム画像</option>}
-                            </select>
-
-                            <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                            <div className="p-4 bg-gray-50 rounded-md">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     トップページの背景画像
                                 </label>
@@ -446,7 +415,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                 </div>
                             </div>
 
-                            <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                            <div className="p-4 bg-gray-50 rounded-md">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     メニュー一覧の背景画像
                                 </label>
@@ -473,8 +442,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                                 type="button"
                                                 onClick={() => setFormData(prev => ({
                                                     ...prev,
-                                                    customBackground: null,
-                                                    backgroundTheme: BACKGROUND_THEMES.FRENCH
+                                                    customBackground: null
                                                 }))}
                                                 className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                                             >
