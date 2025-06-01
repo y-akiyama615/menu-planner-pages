@@ -301,8 +301,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
 
             pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
             pdf.save(`${settings.title}.pdf`);
-            showMessage('PDFの保存が完了しました。');
-
         } catch (error) {
             console.error('PDF生成エラー:', error);
             showMessage('PDF生成中にエラーが発生しました。時間をおいて再度お試しください。');
