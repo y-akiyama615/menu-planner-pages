@@ -170,96 +170,135 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             contentElement.style.width = '800px';
             contentElement.style.fontFamily = 'Helvetica, Arial, sans-serif';
 
-            // 背景画像URL
-            const menuBackgroundImageUrl = formData.customBackground
-                ? formData.customBackground
-                : 'https://source.unsplash.com/1600x900/?french,restaurant,elegant';
+            // 1ページあたりの最大メニュー数
+            const ITEMS_PER_PAGE = 4;
+            const totalPages = Math.ceil(filteredMenus.length / ITEMS_PER_PAGE);
 
-            const topBackgroundImageUrl = formData.customTopBackground
-                ? formData.customTopBackground
-                : 'https://source.unsplash.com/1600x900/?french,restaurant,luxury';
+            // ページごとのコンテンツを生成
+            const pageContents = Array.from({ length: totalPages }, (_, pageIndex) => {
+                const startIndex = pageIndex * ITEMS_PER_PAGE;
+                const pageMenus = filteredMenus.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-            contentElement.innerHTML = `
-                <div style="
-                    background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)), 
-                    url('${topBackgroundImageUrl}') center/cover no-repeat; 
-                    padding: 40px 40px 60px; 
-                    min-height: 100%;
-                    font-family: Helvetica, Arial, sans-serif;
-                ">
-                    <div style="text-align: center; margin-bottom: 40px;">
-                        <h1 style="
-                            font-size: 32px; 
-                            color: #2c3e50;
-                            font-family: Helvetica, Arial, sans-serif;
-                            margin-bottom: 10px;
-                            letter-spacing: 1px;
-                        ">${settings.title}</h1>
-                        <div style="
-                            width: 60px;
-                            height: 3px;
-                            background: #e67e22;
-                            margin: 0 auto;
-                        "></div>
-                    </div>
+                return `
                     <div style="
                         background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)), 
-                        url('${menuBackgroundImageUrl}') center/cover no-repeat;
-                        padding: 30px;
-                        border-radius: 12px;
+                        url('${topBackgroundImageUrl}') center/cover no-repeat; 
+                        padding: 40px 40px 60px; 
+                        min-height: 100%;
+                        font-family: Helvetica, Arial, sans-serif;
+                        page-break-after: always;
                     ">
-                        <div style="
-                            display: grid; 
-                            grid-template-columns: repeat(2, 1fr); 
-                            gap: 25px;
-                            font-family: Helvetica, Arial, sans-serif;
-                        ">
-                            ${filteredMenus.map(menu => `
+                        ${pageIndex === 0 ? `
+                            <div style="text-align: center; margin-bottom: 40px;">
+                                <h1 style="
+                                    font-size: 32px; 
+                                    color: #2c3e50;
+                                    font-family: Helvetica, Arial, sans-serif;
+                                    margin-bottom: 10px;
+                                    letter-spacing: 1px;
+                                ">${settings.title}</h1>
                                 <div style="
-                                    border: 1px solid #e1e1e1;
-                                    padding: 20px;
-                                    border-radius: 8px;
-                                    background: white;
-                                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                                ">
-                                    <h3 style="
-                                        font-size: 20px;
-                                        margin-bottom: 12px;
-                                        color: #2c3e50;
-                                        font-family: Helvetica, Arial, sans-serif;
-                                    ">${menu.name}</h3>
-                                    <p style="
-                                        color: #666;
-                                        font-size: 14px;
-                                        margin-bottom: 15px;
-                                        font-family: Helvetica, Arial, sans-serif;
+                                    width: 60px;
+                                    height: 3px;
+                                    background: #e67e22;
+                                    margin: 0 auto 20px;
+                                "></div>
+                                <p style="
+                                    color: #666;
+                                    font-size: 16px;
+                                    font-family: Helvetica, Arial, sans-serif;
+                                ">家族で楽しむ手作りメニュー</p>
+                            </div>
+                        ` : ''}
+                        <div style="
+                            background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), 
+                            url('data:image/svg+xml,${encodeURIComponent(`
+                                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="20" height="20" fill="none"/>
+                                    <circle cx="3" cy="3" r="1.5" fill="#f0f0f0"/>
+                                    <circle cx="17" cy="3" r="1.5" fill="#f0f0f0"/>
+                                    <circle cx="3" cy="17" r="1.5" fill="#f0f0f0"/>
+                                    <circle cx="17" cy="17" r="1.5" fill="#f0f0f0"/>
+                                </svg>
+                            `)}') center/20px 20px repeat;
+                            padding: 30px;
+                            border-radius: 12px;
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                            border: 1px solid #e1e1e1;
+                        ">
+                            <div style="
+                                display: grid; 
+                                grid-template-columns: repeat(2, 1fr); 
+                                gap: 25px;
+                                font-family: Helvetica, Arial, sans-serif;
+                            ">
+                                ${pageMenus.map(menu => `
+                                    <div style="
+                                        border: 1px solid #e1e1e1;
+                                        padding: 20px;
+                                        border-radius: 8px;
+                                        background: white;
+                                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                        position: relative;
+                                        overflow: hidden;
                                     ">
-                                        <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
-                                    </p>
-                                    ${menu.image ? `
                                         <div style="
-                                            width: 100%;
-                                            height: 150px;
-                                            overflow: hidden;
+                                            position: absolute;
+                                            top: 0;
+                                            right: 0;
+                                            width: 40px;
+                                            height: 40px;
+                                            background: linear-gradient(135deg, #f8f9fa 50%, #e9ecef 50%);
+                                        "></div>
+                                        <h3 style="
+                                            font-size: 20px;
+                                            margin-bottom: 12px;
+                                            color: #2c3e50;
+                                            font-family: Helvetica, Arial, sans-serif;
+                                            border-bottom: 2px solid #e67e22;
+                                            padding-bottom: 8px;
+                                        ">${menu.name}</h3>
+                                        <p style="
+                                            color: #666;
+                                            font-size: 14px;
+                                            margin-bottom: 15px;
+                                            font-family: Helvetica, Arial, sans-serif;
+                                            background: #f8f9fa;
+                                            padding: 4px 8px;
                                             border-radius: 4px;
-                                            margin-top: 10px;
+                                            display: inline-block;
                                         ">
-                                            <img 
-                                                src="${menu.image}" 
-                                                style="
-                                                    width: 100%;
-                                                    height: 100%;
-                                                    object-fit: cover;
-                                                "
-                                            >
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
+                                            ${getCategoryLabel(menu.category)}
+                                        </p>
+                                        ${menu.image ? `
+                                            <div style="
+                                                width: 100%;
+                                                height: 150px;
+                                                overflow: hidden;
+                                                border-radius: 4px;
+                                                margin-top: 10px;
+                                                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                            ">
+                                                <img 
+                                                    src="${menu.image}" 
+                                                    style="
+                                                        width: 100%;
+                                                        height: 100%;
+                                                        object-fit: cover;
+                                                    "
+                                                >
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
                         </div>
+                        ${pageIndex === totalPages - 1 ? '' : '<div style="page-break-after: always;"></div>'}
                     </div>
-                </div>
-            `;
+                `;
+            }).join('');
+
+            contentElement.innerHTML = pageContents;
 
             tempContainer.appendChild(contentElement);
 
