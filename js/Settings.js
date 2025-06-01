@@ -1,7 +1,8 @@
 const Settings = ({ settings, onSave, onClose, menus }) => {
     const [formData, setFormData] = React.useState({
         ...settings,
-        selectedCategories: settings.selectedCategories || []
+        selectedCategories: settings.selectedCategories || [],
+        customBackground: settings.customBackground || null
     });
     const [isExporting, setIsExporting] = React.useState(false);
     const [showDialog, setShowDialog] = React.useState(false);
@@ -13,34 +14,44 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     React.useEffect(() => {
         const loadScripts = async () => {
             try {
+                // スクリプトが既に読み込まれているかチェック
+                if (window.jspdf && window.html2canvas) {
+                    setScriptsLoaded(true);
+                    return;
+                }
+
+                const loadScript = (src) => {
+                    return new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = src;
+                        script.async = true;
+                        script.onload = () => {
+                            console.log(`Script loaded successfully: ${src}`);
+                            resolve();
+                        };
+                        script.onerror = (error) => {
+                            console.error(`Script load error: ${src}`, error);
+                            reject(new Error(`Failed to load ${src}`));
+                        };
+                        document.head.appendChild(script);
+                    });
+                };
+
                 await Promise.all([
-                    new Promise((resolve, reject) => {
-                        if (window.jspdf) {
-                            resolve();
-                            return;
-                        }
-                        const script = document.createElement('script');
-                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-                        script.onload = resolve;
-                        script.onerror = reject;
-                        document.head.appendChild(script);
-                    }),
-                    new Promise((resolve, reject) => {
-                        if (window.html2canvas) {
-                            resolve();
-                            return;
-                        }
-                        const script = document.createElement('script');
-                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                        script.onload = resolve;
-                        script.onerror = reject;
-                        document.head.appendChild(script);
-                    })
+                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+                    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
                 ]);
+
+                // スクリプトが正しく読み込まれたか確認
+                if (!window.jspdf || !window.html2canvas) {
+                    throw new Error('Scripts not properly loaded');
+                }
+
                 setScriptsLoaded(true);
+                console.log('All scripts loaded successfully');
             } catch (error) {
-                console.error('スクリプトの読み込みに失敗しました:', error);
-                showMessage('必要なライブラリの読み込みに失敗しました。');
+                console.error('スクリプトの読み込みエラー:', error);
+                showMessage('PDFライブラリの読み込みに失敗しました。ページを更新して再度お試しください。');
             }
         };
 
@@ -125,17 +136,18 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             return;
         }
 
+        if (!window.jspdf || !window.html2canvas) {
+            showMessage('PDFライブラリが正しく読み込まれていません。ページを更新して再度お試しください。');
+            return;
+        }
+
         setIsExporting(true);
         let contentElement = null;
         let tempContainer = null;
 
         try {
-            // 一時的なコンテナを作成
-            tempContainer = document.createElement('div');
-            tempContainer.style.position = 'absolute';
-            tempContainer.style.left = '-9999px';
-            tempContainer.style.top = '-9999px';
-            document.body.appendChild(tempContainer);
+            // メモリ使用量を最適化するため、画像サイズを制限
+            const maxImageSize = 800; // ピクセル単位
 
             // フィルタリング条件を作成
             const selectedCategories = formData.selectedCategories || [];
@@ -143,7 +155,14 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 ? menus 
                 : menus.filter(menu => selectedCategories.includes(menu.category));
 
-            // PDF用のコンテンツを作成
+            // 一時的なコンテナを作成
+            tempContainer = document.createElement('div');
+            tempContainer.style.position = 'absolute';
+            tempContainer.style.left = '-9999px';
+            tempContainer.style.top = '-9999px';
+            document.body.appendChild(tempContainer);
+
+            // PDF用のコンテンツを作成（画像サイズを制限）
             contentElement = document.createElement('div');
             contentElement.style.padding = '20px';
             contentElement.style.background = 'white';
@@ -159,7 +178,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                     <p style="color: #666;">
                                         <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
                                     </p>
-                                    ${menu.image ? `<img src="${menu.image}" style="width: 100%; height: 150px; object-fit: cover; margin-top: 10px; border-radius: 4px;">` : ''}
+                                    ${menu.image ? `<img src="${menu.image}" style="width: 100%; max-width: ${maxImageSize}px; height: 150px; object-fit: cover; margin-top: 10px; border-radius: 4px;">` : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -169,42 +188,76 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
 
             tempContainer.appendChild(contentElement);
 
-            try {
-                const canvas = await html2canvas(contentElement, {
-                    scale: 2,
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false,
-                    backgroundColor: null
-                });
+            const canvas = await html2canvas(contentElement, {
+                scale: 1.5, // スケールを下げてメモリ使用量を削減
+                useCORS: true,
+                allowTaint: true,
+                logging: false,
+                backgroundColor: null,
+                imageTimeout: 15000, // タイムアウトを15秒に設定
+                onclone: (clonedDoc) => {
+                    // クローンされたドキュメントの画像読み込みを待機
+                    const images = clonedDoc.getElementsByTagName('img');
+                    return Promise.all(Array.from(images).map(img => {
+                        if (img.complete) {
+                            return Promise.resolve();
+                        }
+                        return new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = reject;
+                        });
+                    }));
+                }
+            });
 
-                const imgData = canvas.toDataURL('image/jpeg', 1.0);
-                const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-                const imgX = (pdfWidth - imgWidth * ratio) / 2;
-                const imgY = 30;
+            const imgData = canvas.toDataURL('image/jpeg', 0.8); // 画質を80%に設定
+            const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+            const imgX = (pdfWidth - imgWidth * ratio) / 2;
+            const imgY = 30;
 
-                pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-                pdf.save(`${settings.title}.pdf`);
-                showMessage('PDFの保存が完了しました。');
-            } catch (error) {
-                console.error('PDF生成エラー:', error);
-                showMessage('PDF生成中にエラーが発生しました。');
-            }
+            pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+            pdf.save(`${settings.title}.pdf`);
+            showMessage('PDFの保存が完了しました。');
+
         } catch (error) {
-            console.error('PDF生成処理エラー:', error);
-            showMessage('PDF生成中にエラーが発生しました。');
+            console.error('PDF生成エラー:', error);
+            showMessage('PDF生成中にエラーが発生しました。時間をおいて再度お試しください。');
         } finally {
             setIsExporting(false);
-            // 一時的な要素を安全に削除
             if (tempContainer && document.body.contains(tempContainer)) {
                 document.body.removeChild(tempContainer);
             }
         }
+    };
+
+    const handleBackgroundImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({
+                    ...prev,
+                    customBackground: reader.result,
+                    backgroundTheme: 'custom'
+                }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // 背景画像のURLを取得する関数を修正
+    const getBackgroundUrl = () => {
+        if (formData.backgroundTheme === 'custom' && formData.customBackground) {
+            return formData.customBackground;
+        }
+        const timestamp = new Date().getTime();
+        const encodedTheme = encodeURIComponent(formData.backgroundTheme);
+        return `https://source.unsplash.com/1600x900/?${encodedTheme}&t=${timestamp}`;
     };
 
     return (
@@ -225,7 +278,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                             />
                         </div>
 
-                        <div>
+                        <div className="space-y-4">
                             <label className="block text-sm font-medium text-gray-700">
                                 背景テーマ
                             </label>
@@ -239,7 +292,49 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                 <option value={BACKGROUND_THEMES.KITCHEN}>キッチン</option>
                                 <option value={BACKGROUND_THEMES.CAFE}>カフェ</option>
                                 <option value={BACKGROUND_THEMES.DINING}>ダイニング</option>
+                                {formData.customBackground && <option value="custom">カスタム画像</option>}
                             </select>
+
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    カスタム背景画像
+                                </label>
+                                <div className="space-y-4">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleBackgroundImageUpload}
+                                        className="block w-full text-sm text-gray-500
+                                            file:mr-4 file:py-2 file:px-4
+                                            file:rounded-md file:border-0
+                                            file:text-sm file:font-semibold
+                                            file:bg-blue-50 file:text-blue-700
+                                            hover:file:bg-blue-100"
+                                    />
+                                    {formData.customBackground && (
+                                        <div className="relative">
+                                            <img
+                                                src={formData.customBackground}
+                                                alt="カスタム背景"
+                                                className="w-full h-40 object-cover rounded-lg"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({
+                                                    ...prev,
+                                                    customBackground: null,
+                                                    backgroundTheme: BACKGROUND_THEMES.FRENCH
+                                                }))}
+                                                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         <div>
