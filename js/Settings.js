@@ -238,13 +238,39 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     const handleBackgroundImageUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // ファイルサイズのチェック（5MB制限）
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                showMessage('画像ファイルのサイズが大きすぎます。5MB以下の画像を選択してください。');
+                e.target.value = ''; // 入力をクリア
+                return;
+            }
+
+            // 画像ファイルの種類をチェック
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                showMessage('対応していないファイル形式です。JPG、PNG、GIF形式の画像を選択してください。');
+                e.target.value = '';
+                return;
+            }
+
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData(prev => ({
-                    ...prev,
-                    customBackground: reader.result,
-                    backgroundTheme: 'custom'
-                }));
+                // 画像のサイズをチェック
+                const img = new Image();
+                img.onload = () => {
+                    if (img.width > 2000 || img.height > 2000) {
+                        showMessage('画像の解像度が高すぎます。2000px × 2000px以下の画像を選択してください。');
+                        e.target.value = '';
+                        return;
+                    }
+                    setFormData(prev => ({
+                        ...prev,
+                        customBackground: reader.result,
+                        backgroundTheme: 'custom'
+                    }));
+                };
+                img.src = reader.result;
             };
             reader.readAsDataURL(file);
         }
@@ -261,31 +287,31 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">設定</h2>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-500/30 to-purple-500/30 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+            <div className="bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+                <div className="p-8">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">設定</h2>
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="space-y-2">
+                            <label className="block text-lg font-medium text-gray-700">
                                 タイトル
                             </label>
                             <input
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
                             />
                         </div>
 
                         <div className="space-y-4">
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label className="block text-lg font-medium text-gray-700">
                                 背景テーマ
                             </label>
                             <select
                                 value={formData.backgroundTheme}
                                 onChange={(e) => setFormData({ ...formData, backgroundTheme: e.target.value })}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                className="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
                             >
                                 <option value={BACKGROUND_THEMES.FRENCH}>フレンチレストラン</option>
                                 <option value={BACKGROUND_THEMES.JAPANESE}>和食レストラン</option>
@@ -295,28 +321,29 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                 {formData.customBackground && <option value="custom">カスタム画像</option>}
                             </select>
 
-                            <div className="mt-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <div className="mt-6 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                                <label className="block text-lg font-medium text-gray-700 mb-4">
                                     カスタム背景画像
                                 </label>
                                 <div className="space-y-4">
                                     <input
                                         type="file"
-                                        accept="image/*"
+                                        accept="image/jpeg,image/png,image/gif"
                                         onChange={handleBackgroundImageUpload}
-                                        className="block w-full text-sm text-gray-500
-                                            file:mr-4 file:py-2 file:px-4
-                                            file:rounded-md file:border-0
-                                            file:text-sm file:font-semibold
+                                        className="block w-full text-lg text-gray-500
+                                            file:mr-4 file:py-3 file:px-6
+                                            file:rounded-xl file:border-0
+                                            file:text-lg file:font-semibold
                                             file:bg-blue-50 file:text-blue-700
-                                            hover:file:bg-blue-100"
+                                            hover:file:bg-blue-100
+                                            transition-all duration-200"
                                     />
                                     {formData.customBackground && (
-                                        <div className="relative">
+                                        <div className="relative rounded-2xl overflow-hidden shadow-lg">
                                             <img
                                                 src={formData.customBackground}
                                                 alt="カスタム背景"
-                                                className="w-full h-40 object-cover rounded-lg"
+                                                className="w-full h-48 object-cover"
                                             />
                                             <button
                                                 type="button"
@@ -325,9 +352,11 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                                     customBackground: null,
                                                     backgroundTheme: BACKGROUND_THEMES.FRENCH
                                                 }))}
-                                                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                className="absolute top-3 right-3 p-2 bg-red-600/90 backdrop-blur-sm text-white rounded-xl hover:bg-red-700 
+                                                focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 
+                                                transition-all duration-200 transform hover:scale-105"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                                                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                                                 </svg>
                                             </button>
@@ -337,33 +366,35 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                表示するカテゴリ（未選択の場合は全て表示）
+                        <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                            <label className="block text-lg font-medium text-gray-700 mb-4">
+                                表示するカテゴリ
+                                <span className="text-sm text-gray-500 ml-2">（未選択の場合は全て表示）</span>
                             </label>
-                            <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-4">
                                 {Object.values(MENU_CATEGORIES).map(category => (
-                                    <label key={category} className="flex items-center">
+                                    <label key={category} className="flex items-center p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-200">
                                         <input
                                             type="checkbox"
                                             checked={formData.selectedCategories && formData.selectedCategories.includes(category)}
                                             onChange={() => handleCategoryToggle(category)}
-                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                                            className="rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500 w-5 h-5"
                                         />
-                                        {getCategoryLabel(category)}
+                                        <span className="ml-3 text-lg">{getCategoryLabel(category)}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="flex justify-between">
+                        <div className="flex justify-between pt-6">
                             <button
                                 type="button"
                                 onClick={handleExportPDF}
                                 disabled={isExporting || !scriptsLoaded}
-                                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
-                                    isExporting || !scriptsLoaded ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
-                                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500`}
+                                className={`inline-flex items-center px-6 py-3 border border-transparent text-lg font-medium rounded-xl text-white 
+                                    ${isExporting || !scriptsLoaded ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'} 
+                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500
+                                    transition-all duration-200 transform hover:scale-105`}
                             >
                                 {isExporting ? '生成中...' : 'PDF出力'}
                             </button>
@@ -372,13 +403,17 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                                    className="px-6 py-3 text-lg font-medium text-gray-700 bg-white border border-gray-300 rounded-xl shadow-sm 
+                                        hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500
+                                        transition-all duration-200 transform hover:scale-105"
                                 >
                                     キャンセル
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700"
+                                    className="px-6 py-3 text-lg font-medium text-white bg-blue-600 border border-transparent rounded-xl shadow-sm 
+                                        hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+                                        transition-all duration-200 transform hover:scale-105"
                                 >
                                     保存
                                 </button>
@@ -389,10 +424,10 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             </div>
 
             {isExporting && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
-                    <div className="bg-white p-6 rounded-lg shadow-xl text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-700">PDFを生成中...</p>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]">
+                    <div className="bg-white/90 backdrop-blur p-8 rounded-2xl shadow-2xl text-center">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-6"></div>
+                        <p className="text-xl text-gray-700">PDFを生成中...</p>
                     </div>
                 </div>
             )}
@@ -400,14 +435,19 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             {showDialog && (
                 <div 
                     key={dialogKey}
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]"
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000]"
                     onClick={handleDialogClick}
                 >
-                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
-                        <p className="text-gray-700 mb-4 whitespace-pre-line">{dialogMessage}</p>
+                    <div 
+                        className="bg-white/90 backdrop-blur p-8 rounded-2xl shadow-2xl max-w-sm w-full mx-4" 
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <p className="text-lg text-gray-700 mb-6 whitespace-pre-line">{dialogMessage}</p>
                         <button
                             onClick={handleCloseDialog}
-                            className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-6 py-3 text-lg font-medium text-white bg-blue-600 rounded-xl 
+                                hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500
+                                transition-all duration-200 transform hover:scale-105"
                             style={{
                                 WebkitTapHighlightColor: 'transparent',
                                 touchAction: 'manipulation'
