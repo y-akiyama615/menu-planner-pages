@@ -163,7 +163,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             tempContainer.style.top = '-9999px';
             document.body.appendChild(tempContainer);
 
-            // PDF用のコンテンツを作成（画像サイズを制限）
+            // PDF用のコンテンツを作成
             contentElement = document.createElement('div');
             contentElement.style.padding = '20px';
             contentElement.style.background = 'white';
@@ -174,6 +174,14 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             const ITEMS_PER_PAGE = 4;
             const totalPages = Math.ceil(filteredMenus.length / ITEMS_PER_PAGE);
 
+            // シンプルな背景パターン
+            const patternSvg = `
+                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="20" height="20" fill="none"/>
+                    <circle cx="10" cy="10" r="1" fill="#f0f0f0"/>
+                </svg>
+            `;
+
             // ページごとのコンテンツを生成
             const pageContents = Array.from({ length: totalPages }, (_, pageIndex) => {
                 const startIndex = pageIndex * ITEMS_PER_PAGE;
@@ -181,8 +189,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
 
                 return `
                     <div style="
-                        background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)), 
-                        url('${topBackgroundImageUrl}') center/cover no-repeat; 
+                        background: white;
                         padding: 40px 40px 60px; 
                         min-height: 100%;
                         font-family: Helvetica, Arial, sans-serif;
@@ -211,16 +218,9 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                             </div>
                         ` : ''}
                         <div style="
-                            background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), 
-                            url('data:image/svg+xml,${encodeURIComponent(`
-                                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                    <rect width="20" height="20" fill="none"/>
-                                    <circle cx="3" cy="3" r="1.5" fill="#f0f0f0"/>
-                                    <circle cx="17" cy="3" r="1.5" fill="#f0f0f0"/>
-                                    <circle cx="3" cy="17" r="1.5" fill="#f0f0f0"/>
-                                    <circle cx="17" cy="17" r="1.5" fill="#f0f0f0"/>
-                                </svg>
-                            `)}') center/20px 20px repeat;
+                            background: #ffffff;
+                            background-image: url('data:image/svg+xml,${encodeURIComponent(patternSvg)}');
+                            background-size: 20px 20px;
                             padding: 30px;
                             border-radius: 12px;
                             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -286,6 +286,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                                         height: 100%;
                                                         object-fit: cover;
                                                     "
+                                                    crossorigin="anonymous"
                                                 >
                                             </div>
                                         ` : ''}
@@ -299,8 +300,21 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             }).join('');
 
             contentElement.innerHTML = pageContents;
-
             tempContainer.appendChild(contentElement);
+
+            // 画像の読み込みを待機
+            const images = tempContainer.getElementsByTagName('img');
+            await Promise.all(Array.from(images).map(img => {
+                if (img.complete) return Promise.resolve();
+                return new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = () => {
+                        // 画像読み込みエラー時は空の画像を表示
+                        img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+                        resolve();
+                    };
+                });
+            }));
 
             const canvas = await html2canvas(contentElement, {
                 scale: 1.5,
@@ -308,17 +322,17 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 allowTaint: true,
                 logging: false,
                 backgroundColor: null,
-                imageTimeout: 15000,
+                imageTimeout: 30000, // タイムアウトを30秒に延長
                 onclone: (clonedDoc) => {
-                    // クローンされたドキュメントの画像読み込みを待機
-                    const images = clonedDoc.getElementsByTagName('img');
-                    return Promise.all(Array.from(images).map(img => {
-                        if (img.complete) {
-                            return Promise.resolve();
-                        }
+                    const clonedImages = clonedDoc.getElementsByTagName('img');
+                    return Promise.all(Array.from(clonedImages).map(img => {
+                        if (img.complete) return Promise.resolve();
                         return new Promise((resolve, reject) => {
                             img.onload = resolve;
-                            img.onerror = reject;
+                            img.onerror = () => {
+                                img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+                                resolve();
+                            };
                         });
                     }));
                 }
@@ -327,7 +341,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             const imgData = canvas.toDataURL('image/jpeg', 0.8);
             const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
             
-            // フォントを設定
             pdf.setFont('helvetica');
             
             const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -336,13 +349,14 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             const imgHeight = canvas.height;
             const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
             const imgX = (pdfWidth - imgWidth * ratio) / 2;
-            const imgY = 10; // 上部の余白を10mmに変更
+            const imgY = 10;
 
             pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
             pdf.save(`${settings.title}.pdf`);
+
         } catch (error) {
             console.error('PDF生成エラー:', error);
-            showMessage('PDF生成中にエラーが発生しました。時間をおいて再度お試しください。');
+            showMessage(`PDF生成中にエラーが発生しました: ${error.message}`);
         } finally {
             setIsExporting(false);
             if (tempContainer && document.body.contains(tempContainer)) {
