@@ -167,21 +167,84 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             contentElement.style.padding = '20px';
             contentElement.style.background = 'white';
             contentElement.style.width = '800px';
+            contentElement.style.fontFamily = 'Helvetica, Arial, sans-serif';
+
+            // フレンチレストランの背景画像URL
+            const backgroundImageUrl = formData.backgroundTheme === 'custom' && formData.customBackground
+                ? formData.customBackground
+                : 'https://source.unsplash.com/1600x900/?french,restaurant,elegant';
+
             contentElement.innerHTML = `
-                <div style="background: url('${getBackgroundUrl()}') center/cover no-repeat; padding: 40px; min-height: 100%;">
-                    <div style="background: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 12px;">
-                        <h1 style="font-size: 24px; margin-bottom: 40px; text-align: center;">${settings.title}</h1>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
-                            ${filteredMenus.map(menu => `
-                                <div style="border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: white;">
-                                    <h3 style="font-size: 18px; margin-bottom: 10px;">${menu.name}</h3>
-                                    <p style="color: #666;">
-                                        <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
-                                    </p>
-                                    ${menu.image ? `<img src="${menu.image}" style="width: 100%; max-width: ${maxImageSize}px; height: 150px; object-fit: cover; margin-top: 10px; border-radius: 4px;">` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
+                <div style="
+                    background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)), 
+                    url('${backgroundImageUrl}') center/cover no-repeat; 
+                    padding: 40px; 
+                    min-height: 100%;
+                    font-family: Helvetica, Arial, sans-serif;
+                ">
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <h1 style="
+                            font-size: 32px; 
+                            color: #2c3e50;
+                            font-family: Helvetica, Arial, sans-serif;
+                            margin-bottom: 10px;
+                            letter-spacing: 1px;
+                        ">${settings.title}</h1>
+                        <div style="
+                            width: 60px;
+                            height: 3px;
+                            background: #e67e22;
+                            margin: 0 auto;
+                        "></div>
+                    </div>
+                    <div style="
+                        display: grid; 
+                        grid-template-columns: repeat(2, 1fr); 
+                        gap: 25px;
+                        font-family: Helvetica, Arial, sans-serif;
+                    ">
+                        ${filteredMenus.map(menu => `
+                            <div style="
+                                border: 1px solid #e1e1e1;
+                                padding: 20px;
+                                border-radius: 8px;
+                                background: white;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                            ">
+                                <h3 style="
+                                    font-size: 20px;
+                                    margin-bottom: 12px;
+                                    color: #2c3e50;
+                                    font-family: Helvetica, Arial, sans-serif;
+                                ">${menu.name}</h3>
+                                <p style="
+                                    color: #666;
+                                    font-size: 14px;
+                                    margin-bottom: 15px;
+                                    font-family: Helvetica, Arial, sans-serif;
+                                ">
+                                    <strong>カテゴリ:</strong> ${getCategoryLabel(menu.category)}
+                                </p>
+                                ${menu.image ? `
+                                    <div style="
+                                        width: 100%;
+                                        height: 150px;
+                                        overflow: hidden;
+                                        border-radius: 4px;
+                                        margin-top: 10px;
+                                    ">
+                                        <img 
+                                            src="${menu.image}" 
+                                            style="
+                                                width: 100%;
+                                                height: 100%;
+                                                object-fit: cover;
+                                            "
+                                        >
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             `;
@@ -189,12 +252,12 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             tempContainer.appendChild(contentElement);
 
             const canvas = await html2canvas(contentElement, {
-                scale: 1.5, // スケールを下げてメモリ使用量を削減
+                scale: 1.5,
                 useCORS: true,
                 allowTaint: true,
                 logging: false,
                 backgroundColor: null,
-                imageTimeout: 15000, // タイムアウトを15秒に設定
+                imageTimeout: 15000,
                 onclone: (clonedDoc) => {
                     // クローンされたドキュメントの画像読み込みを待機
                     const images = clonedDoc.getElementsByTagName('img');
@@ -210,8 +273,12 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 }
             });
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.8); // 画質を80%に設定
+            const imgData = canvas.toDataURL('image/jpeg', 0.8);
             const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+            
+            // フォントを設定
+            pdf.setFont('helvetica');
+            
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
             const imgWidth = canvas.width;
@@ -287,7 +354,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-[9999] overflow-y-auto">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-90 flex items-center justify-center p-4 z-[9999] overflow-y-auto">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full my-8">
                 <div className="p-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">設定</h2>
@@ -416,7 +483,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             </div>
 
             {isExporting && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[10000]">
                     <div className="bg-white p-6 rounded-lg shadow-xl text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                         <p className="text-gray-700">PDFを生成中...</p>
@@ -427,7 +494,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             {showDialog && (
                 <div 
                     key={dialogKey}
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] overflow-y-auto"
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[10000] overflow-y-auto"
                     onClick={handleDialogClick}
                 >
                     <div 
