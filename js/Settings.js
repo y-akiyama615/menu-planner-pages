@@ -322,23 +322,47 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 allowTaint: true,
                 logging: false,
                 backgroundColor: null,
-                imageTimeout: 30000, // タイムアウトを30秒に延長
+                imageTimeout: 30000,
+                foreignObjectRendering: false,
+                removeContainer: true,
                 onclone: (clonedDoc) => {
                     const clonedImages = clonedDoc.getElementsByTagName('img');
                     return Promise.all(Array.from(clonedImages).map(img => {
                         if (img.complete) return Promise.resolve();
                         return new Promise((resolve, reject) => {
-                            img.onload = resolve;
-                            img.onerror = () => {
+                            // 画像をBase64に変換
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            const newImg = new Image();
+                            newImg.crossOrigin = 'anonymous';
+                            
+                            newImg.onload = () => {
+                                canvas.width = newImg.width;
+                                canvas.height = newImg.height;
+                                ctx.drawImage(newImg, 0, 0);
+                                try {
+                                    const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                                    img.src = base64;
+                                    resolve();
+                                } catch (e) {
+                                    img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+                                    resolve();
+                                }
+                            };
+                            
+                            newImg.onerror = () => {
                                 img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
                                 resolve();
                             };
+                            
+                            newImg.src = img.src;
                         });
                     }));
                 }
             });
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.8);
+            // 画質を調整してPDFサイズを最適化
+            const imgData = canvas.toDataURL('image/jpeg', 0.7);
             const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
             
             pdf.setFont('helvetica');
@@ -351,7 +375,27 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             const imgX = (pdfWidth - imgWidth * ratio) / 2;
             const imgY = 10;
 
-            pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+            // 画像を分割して追加し、メモリ使用量を削減
+            const chunkHeight = Math.min(1000, imgHeight);
+            const numChunks = Math.ceil(imgHeight / chunkHeight);
+
+            for (let i = 0; i < numChunks; i++) {
+                const sourceY = i * chunkHeight;
+                const sourceHeight = Math.min(chunkHeight, imgHeight - sourceY);
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = imgWidth;
+                tempCanvas.height = sourceHeight;
+                
+                const ctx = tempCanvas.getContext('2d');
+                ctx.drawImage(canvas, 0, sourceY, imgWidth, sourceHeight, 0, 0, imgWidth, sourceHeight);
+                
+                const chunkData = tempCanvas.toDataURL('image/jpeg', 0.7);
+                if (i > 0) pdf.addPage();
+                
+                const chunkRatio = Math.min(pdfWidth / imgWidth, pdfHeight / sourceHeight);
+                pdf.addImage(chunkData, 'JPEG', imgX, imgY, imgWidth * chunkRatio, sourceHeight * chunkRatio);
+            }
+
             pdf.save(`${settings.title}.pdf`);
 
         } catch (error) {
