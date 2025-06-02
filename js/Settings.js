@@ -171,53 +171,10 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             const ITEMS_PER_PAGE = 4;
             const totalPages = Math.ceil(filteredMenus.length / ITEMS_PER_PAGE);
 
-            // シンプルな背景パターン
-            const patternSvg = `
-                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="20" height="20" fill="none"/>
-                    <circle cx="10" cy="10" r="1" fill="#f0f0f0"/>
-                </svg>
-            `;
-
-            // 画像をBase64に変換する関数
-            const convertImageToBase64 = async (imageUrl) => {
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        try {
-                            resolve(canvas.toDataURL('image/jpeg', 0.7));
-                        } catch (e) {
-                            resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
-                        }
-                    };
-                    img.onerror = () => {
-                        resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
-                    };
-                    img.src = imageUrl;
-                });
-            };
-
-            // 全ての画像をBase64に変換
-            const menuPromises = filteredMenus.map(async (menu) => {
-                if (menu.image) {
-                    const base64Image = await convertImageToBase64(menu.image);
-                    return { ...menu, image: base64Image };
-                }
-                return menu;
-            });
-
-            const processedMenus = await Promise.all(menuPromises);
-
             // ページごとのコンテンツを生成
             const pageContents = Array.from({ length: totalPages }, (_, pageIndex) => {
                 const startIndex = pageIndex * ITEMS_PER_PAGE;
-                const pageMenus = processedMenus.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+                const pageMenus = filteredMenus.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
                 return `
                     <div style="
@@ -250,9 +207,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                             </div>
                         ` : ''}
                         <div style="
-                            background: #ffffff;
-                            background-image: url('data:image/svg+xml,${encodeURIComponent(patternSvg)}');
-                            background-size: 20px 20px;
+                            background: white;
                             padding: 30px;
                             border-radius: 12px;
                             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -271,17 +226,7 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                         border-radius: 8px;
                                         background: white;
                                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                                        position: relative;
-                                        overflow: hidden;
                                     ">
-                                        <div style="
-                                            position: absolute;
-                                            top: 0;
-                                            right: 0;
-                                            width: 40px;
-                                            height: 40px;
-                                            background: linear-gradient(135deg, #f8f9fa 50%, #e9ecef 50%);
-                                        "></div>
                                         <h3 style="
                                             font-size: 20px;
                                             margin-bottom: 12px;
@@ -302,24 +247,20 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                         ">
                                             ${getCategoryLabel(menu.category)}
                                         </p>
-                                        ${menu.image ? `
-                                            <div style="
-                                                width: 100%;
-                                                height: 150px;
-                                                overflow: hidden;
-                                                border-radius: 4px;
-                                                margin-top: 10px;
-                                                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                                            ">
-                                                <img 
-                                                    src="${menu.image}"
-                                                    style="
-                                                        width: 100%;
-                                                        height: 100%;
-                                                        object-fit: cover;
-                                                    "
-                                                >
-                                            </div>
+                                        ${menu.description ? `
+                                            <p style="
+                                                color: #666;
+                                                font-size: 14px;
+                                                margin-bottom: 10px;
+                                                font-family: Helvetica, Arial, sans-serif;
+                                            ">${menu.description}</p>
+                                        ` : ''}
+                                        ${menu.lastCookedDate ? `
+                                            <p style="
+                                                color: #666;
+                                                font-size: 12px;
+                                                font-family: Helvetica, Arial, sans-serif;
+                                            ">最終作成日: ${menu.lastCookedDate}</p>
                                         ` : ''}
                                     </div>
                                 `).join('')}
@@ -333,53 +274,66 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             contentElement.innerHTML = pageContents;
             tempContainer.appendChild(contentElement);
 
-            const canvas = await html2canvas(contentElement, {
-                scale: 1.5,
-                useCORS: true,
-                allowTaint: true,
-                logging: false,
-                backgroundColor: 'white',
-                imageTimeout: 0,
-                onclone: (clonedDoc) => {
-                    return Promise.resolve();
-                }
-            });
-
+            // PDFの生成
             const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
             pdf.setFont('helvetica');
 
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = pdf.internal.pageSize.getHeight();
+            // ページごとに処理
+            for (let i = 0; i < totalPages; i++) {
+                const pageElement = tempContainer.children[i];
+                
+                try {
+                    const canvas = await html2canvas(pageElement, {
+                        scale: 1.5,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: 'white',
+                        logging: false,
+                        onclone: (clonedDoc) => {
+                            return Promise.resolve();
+                        }
+                    });
 
-            // 画像を分割して追加し、メモリ使用量を削減
-            const chunkHeight = 1000;
-            const numChunks = Math.ceil(canvas.height / chunkHeight);
+                    const imgData = canvas.toDataURL('image/jpeg', 0.7);
+                    if (i > 0) pdf.addPage();
 
-            for (let i = 0; i < numChunks; i++) {
-                const sourceY = i * chunkHeight;
-                const sourceHeight = Math.min(chunkHeight, canvas.height - sourceY);
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = sourceHeight;
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+                    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+                    const imgX = (pdfWidth - imgWidth * ratio) / 2;
+                    const imgY = 10;
 
-                const ctx = tempCanvas.getContext('2d');
-                ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+                    pdf.addImage(imgData, 'JPEG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
 
-                const chunkData = tempCanvas.toDataURL('image/jpeg', 0.7);
-                if (i > 0) pdf.addPage();
-
-                const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / sourceHeight);
-                const imgX = (pdfWidth - canvas.width * ratio) / 2;
-                const imgY = 10;
-
-                pdf.addImage(chunkData, 'JPEG', imgX, imgY, canvas.width * ratio, sourceHeight * ratio);
+                } catch (pageError) {
+                    console.error(`ページ ${i + 1} の生成中にエラーが発生:`, pageError);
+                    continue;
+                }
             }
 
             pdf.save(`${settings.title}.pdf`);
 
         } catch (error) {
             console.error('PDF生成エラー:', error);
-            showMessage(`PDF生成中にエラーが発生しました: ${error.message}`);
+            showMessage('PDF生成中にエラーが発生しました。画像を含まないバージョンで再試行します。');
+            
+            // 画像なしバージョンでの再試行
+            try {
+                const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+                pdf.setFont('helvetica');
+                
+                const textContent = filteredMenus.map(menu => 
+                    `${menu.name}\n${getCategoryLabel(menu.category)}${menu.description ? '\n' + menu.description : ''}`
+                ).join('\n\n');
+                
+                pdf.text(textContent, 20, 20);
+                pdf.save(`${settings.title}_テキスト版.pdf`);
+            } catch (fallbackError) {
+                console.error('テキストPDFの生成中にエラー:', fallbackError);
+                showMessage('PDF生成に失敗しました。時間をおいて再度お試しください。');
+            }
         } finally {
             setIsExporting(false);
             if (tempContainer && document.body.contains(tempContainer)) {
