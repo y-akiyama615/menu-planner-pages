@@ -147,9 +147,6 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
         let tempContainer = null;
 
         try {
-            // メモリ使用量を最適化するため、画像サイズを制限
-            const maxImageSize = 800; // ピクセル単位
-
             // フィルタリング条件を作成
             const selectedCategories = formData.selectedCategories || [];
             const filteredMenus = selectedCategories.length === 0 
@@ -182,10 +179,45 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                 </svg>
             `;
 
+            // 画像をBase64に変換する関数
+            const convertImageToBase64 = async (imageUrl) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        try {
+                            resolve(canvas.toDataURL('image/jpeg', 0.7));
+                        } catch (e) {
+                            resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+                        }
+                    };
+                    img.onerror = () => {
+                        resolve('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+                    };
+                    img.src = imageUrl;
+                });
+            };
+
+            // 全ての画像をBase64に変換
+            const menuPromises = filteredMenus.map(async (menu) => {
+                if (menu.image) {
+                    const base64Image = await convertImageToBase64(menu.image);
+                    return { ...menu, image: base64Image };
+                }
+                return menu;
+            });
+
+            const processedMenus = await Promise.all(menuPromises);
+
             // ページごとのコンテンツを生成
             const pageContents = Array.from({ length: totalPages }, (_, pageIndex) => {
                 const startIndex = pageIndex * ITEMS_PER_PAGE;
-                const pageMenus = filteredMenus.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+                const pageMenus = processedMenus.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
                 return `
                     <div style="
@@ -280,13 +312,12 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
                                                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                                             ">
                                                 <img 
-                                                    src="${menu.image}" 
+                                                    src="${menu.image}"
                                                     style="
                                                         width: 100%;
                                                         height: 100%;
                                                         object-fit: cover;
                                                     "
-                                                    crossorigin="anonymous"
                                                 >
                                             </div>
                                         ` : ''}
@@ -302,98 +333,46 @@ const Settings = ({ settings, onSave, onClose, menus }) => {
             contentElement.innerHTML = pageContents;
             tempContainer.appendChild(contentElement);
 
-            // 画像の読み込みを待機
-            const images = tempContainer.getElementsByTagName('img');
-            await Promise.all(Array.from(images).map(img => {
-                if (img.complete) return Promise.resolve();
-                return new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = () => {
-                        // 画像読み込みエラー時は空の画像を表示
-                        img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-                        resolve();
-                    };
-                });
-            }));
-
             const canvas = await html2canvas(contentElement, {
                 scale: 1.5,
                 useCORS: true,
                 allowTaint: true,
                 logging: false,
-                backgroundColor: null,
-                imageTimeout: 30000,
-                foreignObjectRendering: false,
-                removeContainer: true,
+                backgroundColor: 'white',
+                imageTimeout: 0,
                 onclone: (clonedDoc) => {
-                    const clonedImages = clonedDoc.getElementsByTagName('img');
-                    return Promise.all(Array.from(clonedImages).map(img => {
-                        if (img.complete) return Promise.resolve();
-                        return new Promise((resolve, reject) => {
-                            // 画像をBase64に変換
-                            const canvas = document.createElement('canvas');
-                            const ctx = canvas.getContext('2d');
-                            const newImg = new Image();
-                            newImg.crossOrigin = 'anonymous';
-                            
-                            newImg.onload = () => {
-                                canvas.width = newImg.width;
-                                canvas.height = newImg.height;
-                                ctx.drawImage(newImg, 0, 0);
-                                try {
-                                    const base64 = canvas.toDataURL('image/jpeg', 0.8);
-                                    img.src = base64;
-                                    resolve();
-                                } catch (e) {
-                                    img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-                                    resolve();
-                                }
-                            };
-                            
-                            newImg.onerror = () => {
-                                img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
-                                resolve();
-                            };
-                            
-                            newImg.src = img.src;
-                        });
-                    }));
+                    return Promise.resolve();
                 }
             });
 
-            // 画質を調整してPDFサイズを最適化
-            const imgData = canvas.toDataURL('image/jpeg', 0.7);
             const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
-            
             pdf.setFont('helvetica');
-            
+
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-            const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-            const imgX = (pdfWidth - imgWidth * ratio) / 2;
-            const imgY = 10;
 
             // 画像を分割して追加し、メモリ使用量を削減
-            const chunkHeight = Math.min(1000, imgHeight);
-            const numChunks = Math.ceil(imgHeight / chunkHeight);
+            const chunkHeight = 1000;
+            const numChunks = Math.ceil(canvas.height / chunkHeight);
 
             for (let i = 0; i < numChunks; i++) {
                 const sourceY = i * chunkHeight;
-                const sourceHeight = Math.min(chunkHeight, imgHeight - sourceY);
+                const sourceHeight = Math.min(chunkHeight, canvas.height - sourceY);
                 const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = imgWidth;
+                tempCanvas.width = canvas.width;
                 tempCanvas.height = sourceHeight;
-                
+
                 const ctx = tempCanvas.getContext('2d');
-                ctx.drawImage(canvas, 0, sourceY, imgWidth, sourceHeight, 0, 0, imgWidth, sourceHeight);
-                
+                ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+
                 const chunkData = tempCanvas.toDataURL('image/jpeg', 0.7);
                 if (i > 0) pdf.addPage();
-                
-                const chunkRatio = Math.min(pdfWidth / imgWidth, pdfHeight / sourceHeight);
-                pdf.addImage(chunkData, 'JPEG', imgX, imgY, imgWidth * chunkRatio, sourceHeight * chunkRatio);
+
+                const ratio = Math.min(pdfWidth / canvas.width, pdfHeight / sourceHeight);
+                const imgX = (pdfWidth - canvas.width * ratio) / 2;
+                const imgY = 10;
+
+                pdf.addImage(chunkData, 'JPEG', imgX, imgY, canvas.width * ratio, sourceHeight * ratio);
             }
 
             pdf.save(`${settings.title}.pdf`);
